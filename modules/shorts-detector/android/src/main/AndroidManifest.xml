@@ -1,4 +1,4 @@
-<manifest>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
   <application>
     <!-- 유튜브 Shorts / 인스타그램 Reels 탭 진입을 감지하는 AccessibilityService.
          시스템이 바인드하는 서비스라 BIND_ACCESSIBILITY_SERVICE 권한 필수. -->

@@ -16,3 +16,7 @@ tools/puzzle-gen/renjunet_cache/
 # Python 캐시
 __pycache__/
 *.pyc
+
+# 로컬 Expo 모듈 빌드 산출물
+modules/*/android/build/
+modules/*/android/.cxx/

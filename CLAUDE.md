@@ -41,7 +41,23 @@
 - 현재 출력: `output/puzzles.json` RenjuNet 기반 90개(난이도 1~3, 각 30개). 예전 자체 셀프플레이 60개는 `output/puzzles.random.json`에 비교용으로 보관. 앱 스캐폴딩 후 이 JSON을 static asset으로 번들할 예정. 상세 사용법은 `tools/puzzle-gen/README.md`.
 
 ## 폴더 구조
-(앱 스캐폴딩 전 — 다음 단계에서 `expo prebuild` 이후 실제 구조 반영 예정)
+
+```
+App.tsx                      — 루트. 트리거 체크해서 홈/퍼즐 화면 전환
+src/features/
+  puzzle/                    — 퍼즐 화면 + 퍼즐 뱅크(JSON 번들)
+  settings/                  — 설정 화면(감지 서비스 상태, 면제시간 선택)
+modules/shorts-detector/      — 로컬 Expo 네이티브 모듈(Android 전용)
+  android/.../ShortsDetectorAccessibilityService.kt  — 감지 서비스
+  android/.../ShortsDetectorModule.kt                 — RN 브릿지
+  src/ShortsDetectorModule.ts — TS 쪼
+android/                      — expo prebuild로 한 번 생성, 이후 직접 관리
+  (AccessibilityService는 모듈 자체 매니페스트가 머지돼서 들어감 — config
+   plugin 없이도 동작. 단, android/ 폴더를 다시 `expo prebuild`로 지우고
+   새로 만들면 MainActivity.kt의 onNewIntent 수정 같은 직접 편집분은 날아감
+   — 그런 재생성은 하지 말 것.)
+tools/puzzle-gen/             — 퍼즐 뱅크 생성 도구(앱에는 안 들어감)
+```
 
 ## 코드 컨벤션
 
