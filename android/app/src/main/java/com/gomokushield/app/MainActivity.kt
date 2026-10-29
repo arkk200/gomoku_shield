@@ -1,7 +1,9 @@
 package com.gomokushield.app
 
-import android.content.Intent
 import android.os.Build
+// @generated begin gomoku-shield-onnewintent-import - expo prebuild (DO NOT MODIFY) sync-e6b9f54e19ab3cfd8689165dc8aa1ae37ba84e44
+import android.content.Intent
+// @generated end gomoku-shield-onnewintent-import
 import android.os.Bundle
 
 import com.facebook.react.ReactActivity
@@ -25,16 +27,13 @@ class MainActivity : ReactActivity() {
    * rendering of the component.
    */
   override fun getMainComponentName(): String = "main"
+// @generated begin gomoku-shield-onnewintent-method - expo prebuild (DO NOT MODIFY) sync-ea66b2875a67bfb2faf88aa15551907609096e09
 
-  // launchMode="singleTask"라 ShortsDetectorAccessibilityService가 재실행시키면
-  // onCreate가 아니라 onNewIntent로 옴. RN의 기본 onNewIntent는 JS Linking 쪼으로만
-  // 전달하고 setIntent()는 안 불러서, 안 고치면 getIntent()가 계속 옛 인텐트를 돌려줘서
-  // ShortsDetectorModule.consumeLaunchTrigger()가 새 트리거(trigger="puzzle")를
-  // 영영 못 읽음. 그래서 직접 갱신함.
   override fun onNewIntent(intent: Intent) {
     setIntent(intent)
     super.onNewIntent(intent)
   }
+// @generated end gomoku-shield-onnewintent-method
 
   /**
    * Returns the instance of the [ReactActivityDelegate]. We use [DefaultReactActivityDelegate]
