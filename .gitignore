@@ -1,0 +1,18 @@
+node_modules/
+.expo/
+dist/
+.env
+.env.local
+*.log
+.DS_Store
+android/.gradle/
+android/app/build/
+ios/Pods/
+ios/build/
+
+# RenjuNet 원본 다운로드 캐시 — 용량 크고(45MB+) 재다운로드 가능, 커밋 안 함
+tools/puzzle-gen/renjunet_cache/
+
+# Python 캐시
+__pycache__/
+*.pyc
