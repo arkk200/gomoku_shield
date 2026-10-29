@@ -96,15 +96,27 @@ def main():
                      help="포지션 소스 — renjunet(실제 대국, 기본값) 또는 random(자체 생성, 비교용)")
     ap.add_argument("--renjunet-xml", default="renjunet_cache/games.xml",
                      help="RenjuNet XML 캐시 경로(없으면 자동으로 받음)")
-    ap.add_argument("--target", type=int, default=15, help="난이도별로 모을 퍼즐 개수")
+    ap.add_argument("--target", type=int, default=15, help="난이도별로 모을 기본 퍼즐 개수(--bucket-target으로 특정 난이도만 덮어쓸 수 있음)")
+    ap.add_argument("--min-difficulty", type=int, default=1, help="모을 최소 난이도 — 이보다 낮은 난이도는 버킷 자체를 안 만들어서 전부 버림")
     ap.add_argument("--max-difficulty", type=int, default=3, help="탐색할 최대 난이도(공격 측 수 개수)")
+    ap.add_argument("--bucket-target", action="append", default=[],
+                     metavar="난이도:개수",
+                     help="특정 난이도의 목표 개수를 --target 대신 따로 지정. 여러 번 줄 수 있음(예: --bucket-target 3:40 --bucket-target 4:30)")
     ap.add_argument("--max-games", type=int, default=2000, help="목표 못 채우면 포기할 상한 게임 수")
     ap.add_argument("--seed", type=int, default=42, help="재현용 랜덤 시드")
     ap.add_argument("--out", default="output/puzzles.json", help="출력 JSON 경로")
     args = ap.parse_args()
 
+    bucket_targets = {d: args.target for d in range(args.min_difficulty, args.max_difficulty + 1)}
+    for spec in args.bucket_target:
+        d_str, _, count_str = spec.partition(":")
+        d = int(d_str)
+        if d not in bucket_targets:
+            raise SystemExit(f"--bucket-target {spec}: 난이도 {d}는 min/max-difficulty 범위 밖")
+        bucket_targets[d] = int(count_str)
+
     rng = random.Random(args.seed)
-    buckets = {d: [] for d in range(1, args.max_difficulty + 1)}
+    buckets = {d: [] for d in bucket_targets}
     seen_signatures = set()
     puzzle_id = 1
     games = 0
@@ -113,7 +125,7 @@ def main():
         return sum(len(v) for v in buckets.values())
 
     def target_total():
-        return args.target * args.max_difficulty
+        return sum(bucket_targets.values())
 
     for position_stream in game_position_streams(args, rng):
         if games >= args.max_games or total_collected() >= target_total():
@@ -122,7 +134,7 @@ def main():
         for board, player in position_stream:
             if len(board.occupied_cells()) < MIN_STONES_BEFORE_CHECK:
                 continue
-            if all(len(buckets[d]) >= args.target for d in buckets):
+            if all(len(buckets[d]) >= bucket_targets[d] for d in buckets):
                 break
             sig = board_signature(board)
             if sig in seen_signatures:
@@ -130,7 +142,7 @@ def main():
             moves, difficulty = extract_puzzle(board, player, args.max_difficulty)
             # 더블 포로 끝나는 경우 탐색 깊이는 안 늘어도 공격 측 수는 하나 더 붙음 ->
             # 실제 난이도가 탐색 깊이보다 커질 수 있음. 지금 목표로 두는 버킷에만 담음.
-            if moves is None or difficulty not in buckets or len(buckets[difficulty]) >= args.target:
+            if moves is None or difficulty not in buckets or len(buckets[difficulty]) >= bucket_targets[difficulty]:
                 continue
             seen_signatures.add(sig)
             buckets[difficulty].append(to_puzzle_record(puzzle_id, board, player, moves, difficulty))
@@ -145,7 +157,7 @@ def main():
     print(f"source: {args.source}")
     print(f"games played: {games}")
     for d in sorted(buckets):
-        print(f"difficulty {d}: {len(buckets[d])}/{args.target}")
+        print(f"difficulty {d}: {len(buckets[d])}/{bucket_targets[d]}")
     print(f"total: {len(puzzles)} -> {args.out}")
 
 
