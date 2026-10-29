@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AppState, SafeAreaView, StyleSheet } from 'react-native';
+import { AppState, StyleSheet } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import ShortsDetector from './modules/shorts-detector/src/ShortsDetectorModule';
 import { PuzzleScreen } from './src/features/puzzle/PuzzleScreen';
 import { SettingsScreen } from './src/features/settings/SettingsScreen';
@@ -27,13 +28,15 @@ export default function App() {
   }, [checkLaunchTrigger]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      {screen === 'puzzle' ? (
-        <PuzzleScreen onDone={() => setScreen('home')} />
-      ) : (
-        <SettingsScreen />
-      )}
-    </SafeAreaView>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.container}>
+        {screen === 'puzzle' ? (
+          <PuzzleScreen onDone={() => setScreen('home')} />
+        ) : (
+          <SettingsScreen />
+        )}
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
