@@ -1,0 +1,18 @@
+<manifest>
+  <application>
+    <!-- 유튜브 Shorts / 인스타그램 Reels 탭 진입을 감지하는 AccessibilityService.
+         시스템이 바인드하는 서비스라 BIND_ACCESSIBILITY_SERVICE 권한 필수. -->
+    <service
+        android:name=".ShortsDetectorAccessibilityService"
+        android:exported="true"
+        android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+        android:label="@string/accessibility_service_label">
+      <intent-filter>
+        <action android:name="android.accessibilityservice.AccessibilityService" />
+      </intent-filter>
+      <meta-data
+          android:name="android.accessibilityservice"
+          android:resource="@xml/accessibility_service_config" />
+    </service>
+  </application>
+</manifest>

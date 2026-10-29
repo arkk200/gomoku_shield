@@ -1,0 +1,4 @@
+<resources>
+  <string name="accessibility_service_label">오목 실드 감지 서비스</string>
+  <string name="accessibility_service_description">유튜브 Shorts·인스타그램 Reels 탭 진입을 감지해서 오목 퍼즐을 띄우는 데만 씁니다. 화면 내용을 외부로 전송하지 않습니다.</string>
+</resources>
