@@ -1,9 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+  <!-- 개발 모드에서 Metro 번들러 접속에만 씀 — 런타임에 서버 호출 전혀 없음(CLAUDE.md 데이터 정책). -->
   <uses-permission android:name="android.permission.INTERNET"/>
-  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" tools:replace="android:maxSdkVersion"/>
-  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
-  <uses-permission android:name="android.permission.VIBRATE"/>
-  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" tools:replace="android:maxSdkVersion"/>
+  <!-- SYSTEM_ALERT_WINDOW, VIBRATE, 외부 저장소 권한은 우리 설계상 안 씀 — Expo 기본 템플릿에
+       있던 걸 최소 권한 원칙(CLAUDE.md 참고/리스크)에 따라 제거함. AccessibilityService 권한은
+       modules/shorts-detector의 매니페스트에서 선언함. -->
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
