@@ -80,3 +80,9 @@ tools/puzzle-gen/             — 퍼즐 뱅크 생성 도구(앱에는 안 들�
 - AccessibilityService 네이티브 모듈(Kotlin) 작업 시 권한 범위 최소로 — 사이드로드라 Play 심사는 없지만, 권한 오남용 자체는 여전히 조심해야 할 부분.
 - 유튜브/인스타 view-id 기반 탐지라 두 앱 업데이트 추적 필요(깨짐 감시 체계 나중에 고려).
 - RenjuNet 데이터 사용은 "사이드로드·비상업·완전 온디바이스"라는 배포 전제에 근거함 — 이 전제가 바뀌면(재상업화, Play Store 재검토 등) 데이터 소스도 같이 재검토해야 함.
+- **AccessibilityService 설정 XML 필수 플래그 2개**(실기기/에뮬레이터 테스트로 찾아냄, 빠지면 에러 없이 그냥 조용히 감지가 안 됨):
+  - `flagReportViewIds` — 없으면 `viewIdResourceName`이 전부 null로 옴(resource-id 기반 탐지 자체가 불가능해짐).
+  - `flagIncludeNotImportantViews` — 없으면 레이아웃 래퍼 노드(`reel_player_page_container` 등) 밑의 실제 콘텐츠로 전혀 못 내려감. 둘 다 `modules/shorts-detector/android/.../res/xml/accessibility_service_config.xml`에 있음.
+  - 또한 `rootInActiveWindow` 하나만 보지 말고 `windows` 전체를 훑어야 함 — reel 플레이어가 별도 윈도우에 떠서 놓치는 경우 있었음.
+- **사이드로드 앱은 Android "제한된 설정"(Restricted Settings)에 걸림**: adb로 설치한 앱은 `adb shell settings put secure enabled_accessibility_services`로 접근성 서비스를 켜도 시스템이 조용히 무시함(진짜 유저도 마찬가지로 겪는 제약) — 반드시 설정 화면에서 토글 눌러서 뜨는 "Allow" 확인창을 직접 통과해야 켜짐. 우리 설정 화면의 "접근성 설정 열기" 버튼이 그 화면으로 보내주는 정상 경로임.
+- **QA 상태**: 에뮬레이터(Pixel Tablet, Play Store 포함)에서 실제 유튜브 앱으로 end-to-end 확인 완료 — Shorts 진입 → 감지 → 앱 전환 → 실제 RenjuNet 퍼즐 렌더링까지 전부 동작함. 인스타그램 Reels는 미설치라 아직 미확인(설치 후 같은 방식으로 확인 필요, keyword는 "reel").
