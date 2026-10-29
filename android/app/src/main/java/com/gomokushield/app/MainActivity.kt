@@ -1,5 +1,6 @@
 package com.gomokushield.app
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 
@@ -24,6 +25,16 @@ class MainActivity : ReactActivity() {
    * rendering of the component.
    */
   override fun getMainComponentName(): String = "main"
+
+  // launchMode="singleTask"라 ShortsDetectorAccessibilityService가 재실행시키면
+  // onCreate가 아니라 onNewIntent로 옴. RN의 기본 onNewIntent는 JS Linking 쪼으로만
+  // 전달하고 setIntent()는 안 불러서, 안 고치면 getIntent()가 계속 옛 인텐트를 돌려줘서
+  // ShortsDetectorModule.consumeLaunchTrigger()가 새 트리거(trigger="puzzle")를
+  // 영영 못 읽음. 그래서 직접 갱신함.
+  override fun onNewIntent(intent: Intent) {
+    setIntent(intent)
+    super.onNewIntent(intent)
+  }
 
   /**
    * Returns the instance of the [ReactActivityDelegate]. We use [DefaultReactActivityDelegate]
