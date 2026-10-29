@@ -36,9 +36,9 @@
 - `tools/puzzle-gen/gomoku.py` — 15x15 프리스타일 보드(금수 없음, 5+ 승리).
 - `tools/puzzle-gen/vcf.py` — VCF 강제승리 솔버. 매 수마다 "이기는 수가 정확히 하나"인지 검증해서 cook(복수 정답) 있는 포지션은 버림 → Lichess 퍼즐과 동일한 "유일 정답" 원칙.
 - `tools/puzzle-gen/renjunet.py` — RenjuNet XML 다운로드/캐싱, 좌표 파싱(`h8` 등 → `(r,c)`), 대국 재생.
-- `tools/puzzle-gen/generate.py` — 포지션 생성(`--source renjunet` 기본값 / `--source random` 비교용) → 유일 강제승리 체크 → 난이도(공격 측 수 개수)별 버킷에 모아 JSON 출력.
+- `tools/puzzle-gen/generate.py` — 포지션 생성(`--source renjunet` 기본값 / `--source random` 비교용) → 유일 강제승리 체크 → 난이도(공격 측 수 개수)별 버킷에 모아 JSON 출력. `--min-difficulty`로 특정 난이도 미만을 아예 배제하고, `--bucket-target d:개수`로 난이도별 목표 개수를 `--target` 기본값 대신 따로 지정 가능.
 - `tools/puzzle-gen/preview.py` — 생성된 퍼즐을 ASCII 보드로 렌더링해서 직접 확인.
-- 현재 출력: `output/puzzles.json` RenjuNet 기반 90개(난이도 1~3, 각 30개). 예전 자체 셀프플레이 60개는 `output/puzzles.random.json`에 비교용으로 보관. 앱 스캐폴딩 후 이 JSON을 static asset으로 번들할 예정. 상세 사용법은 `tools/puzzle-gen/README.md`.
+- 현재 출력: `output/puzzles.json` RenjuNet 기반 90개 — **난이도 1(1수) 퍼즐은 완전히 제외**(너무 쉬워서 끼어들기 저지 효과 약함, 유저 요청으로 뺌), 난이도 2/3/4만 담음(2:20, 3:40, 4:30 — 3수 이상이 78%). 생성 커맨드: `python3 generate.py --source renjunet --min-difficulty 2 --max-difficulty 4 --bucket-target 2:20 --bucket-target 3:40 --bucket-target 4:30 --max-games 4000`. 예전 자체 셀프플레이 60개는 `output/puzzles.random.json`에 비교용으로 보관. `src/features/puzzle/puzzles.json`이 이 출력의 사본(static asset으로 번들). 상세 사용법은 `tools/puzzle-gen/README.md`.
 
 ## 폴더 구조
 
@@ -88,4 +88,5 @@ tools/puzzle-gen/             — 퍼즐 뱅크 생성 도구(앱에는 안 들�
 - **QA 상태**: 에뮬레이터(Pixel Tablet, Play Store 포함)에서 실제 유튜브 앱으로 end-to-end 확인 완료 — Shorts 진입 → 감지 → 앱 전환 → 실제 RenjuNet 퍼즐 렌더링까지 전부 동작함. 인스타그램 Reels는 미설치라 아직 미확인(설치 후 같은 방식으로 확인 필요, keyword는 "reel").
 - **이벤트만으로는 재감지 안 되는 케이스**: 영상을 스크롤 없이 가만히 보고만 있으면 접근성 이벤트 자체가 안 생겨서, 면제시간이 지나도 영원히 재트리거가 안 됐음(실기기 QA로 발견). `ShortsDetectorAccessibilityService`에 3초 간격 `Handler` 폴러를 추가해서 이벤트 유무와 무관하게 주기적으로 같은 체크를 돌림 — `onAccessibilityEvent`와 폴러 둘 다 같은 `checkAndMaybeTrigger()`를 호출.
 - **"흑 차례인데 백돌이 놓인다" / "1수 문제만 나온다" 피드백 — 둘 다 같은 원인, 실제 로직 버그 아님**: 스크린샷 픽셀 단위로 색 배치를 대조해서 검증함(초기 배치 34/34, 수순 재생 전부 일치) — 퍼즐 솔버/렌더링 로직은 정상. 진짜 원인은 상대(강제) 수가 유저 탭 없이 자동으로 놓이는데 그걸 구분할 시각적 단서가 전혀 없었던 것 — 유저가 "탭했는데 반대색 돌이 생겼다"를 오류로 착각하기 쉬운 구조였음. `PuzzleScreen`/`PuzzleBoard`에 (1) 마지막에 놓인 수에 파란 링 하이라이트, (2) "공격 측 n/m수" 진행 카운터, (3) "내 차례"/"상대가 막는 중..." 턴 표시를 추가해서 해결.
+- **번들된 JSON(퍼즐 뱅크 등) 바꿔도 이미 떠있는 앱 인스턴스엔 안 먹힘**: `puzzles.json`을 갱신한 뒤 Metro가 떠있는 상태에서 기존 앱 인스턴스로 재트리거해봤더니 계속 옛날 데이터로 퍼즐이 떴음 — `MainActivity`가 `singleTask`라 액티비티가 재생성 안 되고, JS 모듈(JSON import 포함)도 앱 프로세스 최초 로드 시점에 한 번 파싱돼서 메모리에 고정됨. Metro `/reload` HTTP 엔드포인트를 호출해봐도 안 먹힘(이건 그냥 manifest 조회용). 실제로 새 데이터를 보려면 `adb shell am force-stop`으로 프로세스를 통째로 죽이고 재실행해야 함 — 근데 force-stop은 접근성 서비스도 같이 꺼버리니(위 항목 참고) 재검증할 때마다 설정 화면에서 토글→Allow 확인창을 다시 통과시켜야 함.
 - **퍼즐 #56이 이상하다는 유저 제보로 발견한 진짜 버그**: `vcf.py`의 더블 포(open four) 판정 분기가 `depth_limit`을 소비하지 않고 공짜로 승리 처리를 해버려서, `extract_puzzle`의 depth=1 탐색에서 가짜로 "유일해"를 찾고 멈춰버리는 문제가 있었음 — 실제로는 공격 측 수가 2개 드는 수순인데 depth=1 취급돼서, 같은 depth(2)에서 찾아야 할 동급 대안 강제승리 수순(재귀 분기 쪽)을 못 보고 cook을 못 걸러냄. 재검증 결과 기존 뱅크 90개 중 46개(51%)가 저장된 난이도에서 cook 또는 FAIL — `depth_limit >= 2`일 때만 더블 포 분기를 승리로 인정하도록 고치고 뱅크 전체(RenjuNet 90개) 재생성, cook 0개 확인. 퍼즐 ID/구성이 이전과 완전히 달라짐.
