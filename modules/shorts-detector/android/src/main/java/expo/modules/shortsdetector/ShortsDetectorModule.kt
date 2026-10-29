@@ -54,6 +54,12 @@ class ShortsDetectorModule : Module() {
       prefs.edit().putLong(KEY_EXEMPT_UNTIL, exemptUntil).apply()
     }
 
+    // 퍼즐 다 풀고 "돌아가기" 눌렀을 때 — 우리 앱을 백그라운드로 보내서
+    // 뒤에 깔려있던 유튜브/인스타가 다시 보이게 함(앱을 끄는 게 아니라 숨기는 거).
+    Function("moveToBack") {
+      appContext.currentActivity?.moveTaskToBack(true)
+    }
+
     Function("getGraceMinutesSetting") {
       prefs.getFloat(KEY_GRACE_MINUTES, DEFAULT_GRACE_MINUTES.toFloat()).toDouble()
     }

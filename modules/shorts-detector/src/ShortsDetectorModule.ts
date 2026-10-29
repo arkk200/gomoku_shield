@@ -11,6 +11,8 @@ declare class ShortsDetectorModule extends NativeModule<{}> {
   consumeLaunchTrigger(): LaunchTrigger;
   // 퍼즐 풀었을 때 호출 — graceMinutes 동안 재감지 안 되게 면제 기록.
   markPuzzleSolved(graceMinutes: number): void;
+  // 우리 앱을 백그라운드로 보냄(뒤에 있던 유튜브/인스타가 다시 보이게).
+  moveToBack(): void;
   getGraceMinutesSetting(): number;
   setGraceMinutesSetting(minutes: number): void;
 }
