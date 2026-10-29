@@ -44,11 +44,14 @@ class TestSolveUniqueVcfBasics(unittest.TestCase):
             board.place(7, c, BLACK)
         self.assertIsNone(solve_unique_vcf(board, BLACK, max_attacker_moves=1))
 
-    def test_double_threat_finish_found_at_depth_one(self):
-        """실제 생성된 퍼즐 데이터 기반 회귀 테스트.
+    def test_double_threat_requires_depth_two_not_depth_one(self):
+        """실제 생성된 퍼즐 데이터 기반 회귀 테스트(버그 수정 후).
         input: 백 차례, (8,9)에 두면 (8,8)(8,9)(8,10)(8,11) 4개 연속이 되고
-        양 끝(8,7)/(8,12)이 둘 다 열려 더블 포가 됨, depth=1.
-        output: [백(8,9), 흑이 강제로 (8,7) 막음, 백이 (8,12)로 마무리] — 공격 측 수는 2개."""
+        양 끝(8,7)/(8,12)이 둘 다 열려 더블 포가 됨 — 이 수순은 공격 측 수가 2개
+        (지금 수 + 마무리 수) 들어가니 depth=1에서는 못 찾아야 정상(예전엔 버그로
+        depth=1에서 공짜로 찾아버려서, 같은 depth에서 찾아야 할 다른 대안 수순을
+        놓치고 "유일해"로 오판하는 문제가 있었음 — 실제 퍼즐 #56이 이래서 cook됨).
+        depth=1 -> None. depth=2 -> [백(8,9), 흑이 강제로 (8,7) 막음, 백이 (8,12)로 마무리]."""
         board = Board()
         stones = [
             (0, 5, BLACK), (0, 6, WHITE), (0, 7, BLACK), (1, 7, WHITE), (2, 4, BLACK),
@@ -58,8 +61,9 @@ class TestSolveUniqueVcfBasics(unittest.TestCase):
         ]
         place_all(board, stones)
 
-        moves = solve_unique_vcf(board, WHITE, max_attacker_moves=1)
+        self.assertIsNone(solve_unique_vcf(board, WHITE, max_attacker_moves=1))
 
+        moves = solve_unique_vcf(board, WHITE, max_attacker_moves=2)
         self.assertEqual(
             moves,
             [
@@ -70,11 +74,13 @@ class TestSolveUniqueVcfBasics(unittest.TestCase):
         )
         self.assertEqual(attacker_move_count(moves, WHITE), 2)
 
-    def test_depth_one_fails_but_depth_two_finds_longer_forced_win(self):
+    def test_depth_matching_difficulty_finds_true_forced_win(self):
         """실제 생성된 퍼즐 데이터 기반 회귀 테스트 — 탐색 깊이(depth) 제한 동작 확인.
         input: 아래 복잡한 중반 포지션에서 백 차례.
-        depth=1 -> output: None (1수 안에는 강제승리 없음).
-        depth=2 -> output: 백-흑-백-흑-백 5수짜리 강제승리 수순(공격 측 수 3개)."""
+        depth=1, depth=2 -> None(둘 다 강제승리 없음 — depth=2는 수정 전엔 버그로
+        3수짜리 수순을 "유일해"로 잘못 찾아냈었는데, 실제로는 depth=2 안에서 다른
+        대안도 있어서 cook이었음. 수정 후엔 정상적으로 None).
+        depth=3 -> 백-흑-백-흑-백 5수짜리 강제승리 수순(공격 측 수 3개)."""
         board = Board()
         stones = [
             (3, 12, WHITE), (4, 1, BLACK), (4, 3, BLACK), (4, 6, WHITE), (5, 4, BLACK),
@@ -89,8 +95,9 @@ class TestSolveUniqueVcfBasics(unittest.TestCase):
         place_all(board, stones)
 
         self.assertIsNone(solve_unique_vcf(board, WHITE, max_attacker_moves=1))
+        self.assertIsNone(solve_unique_vcf(board, WHITE, max_attacker_moves=2))
 
-        moves = solve_unique_vcf(board, WHITE, max_attacker_moves=2)
+        moves = solve_unique_vcf(board, WHITE, max_attacker_moves=3)
         self.assertEqual(
             moves,
             [

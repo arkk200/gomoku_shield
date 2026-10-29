@@ -31,13 +31,19 @@ def _solve(board, player, depth_limit):
 
         if len(comp) >= 2:
             # 더블 포(double threat): 상대는 둘 중 하나만 막을 수 있어서, 남은 자리로 공격 측이 마무리함.
-            block, finish = sorted(comp)[:2]
-            moves = [
-                {"player": player, "pos": (r, c)},
-                {"player": other(player), "pos": block},
-                {"player": player, "pos": finish},
-            ]
-            winners.append(((r, c), moves))
+            # 이 수순은 공격 측 수가 2개(지금 수 + 마무리 수) 들어가니 depth_limit도 최소 2는
+            # 있어야 함 — 안 그러면 "depth=1 탐색"이라면서 실제로는 2수짜리 승리를 공짜로
+            # 찾아버려서, 같은 depth에서 동등하게 탐색돼야 할 다른 2수 강제승리 수순(아래
+            # len(comp)==1 재귀 분기)을 놓치고 "유일해"로 잘못 판정하는 버그가 있었음
+            # (실전 QA에서 퍼즐 #56이 사실 공격 측 첫 수가 3가지나 되는 cook으로 드러남).
+            if depth_limit >= 2:
+                block, finish = sorted(comp)[:2]
+                moves = [
+                    {"player": player, "pos": (r, c)},
+                    {"player": other(player), "pos": block},
+                    {"player": player, "pos": finish},
+                ]
+                winners.append(((r, c), moves))
             board.undo(r, c)
             if len(winners) > 1:
                 break
