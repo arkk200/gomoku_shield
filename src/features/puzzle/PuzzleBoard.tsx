@@ -7,13 +7,14 @@ interface PuzzleBoardProps {
   size: number;
   grid: Grid;
   wrongCell: { r: number; c: number } | null;
+  lastMove: { r: number; c: number } | null;
   onCellPress: (r: number, c: number) => void;
 }
 
 const BOARD_PADDING = 16;
 const LINE_THICKNESS = 1;
 
-export function PuzzleBoard({ size, grid, wrongCell, onCellPress }: PuzzleBoardProps) {
+export function PuzzleBoard({ size, grid, wrongCell, lastMove, onCellPress }: PuzzleBoardProps) {
   const { width } = useWindowDimensions();
   const boardSize = width - BOARD_PADDING * 2;
   // 오목판은 칸 안이 아니라 가로/세로선이 겹치는 교차점에 돌을 놓음 — 각 교차점을
@@ -47,6 +48,7 @@ export function PuzzleBoard({ size, grid, wrongCell, onCellPress }: PuzzleBoardP
       {grid.map((row, r) =>
         row.map((stone, c) => {
           const isWrong = wrongCell?.r === r && wrongCell?.c === c;
+          const isLastMove = lastMove?.r === r && lastMove?.c === c;
           return (
             <Pressable
               key={`${r}-${c}`}
@@ -74,6 +76,9 @@ export function PuzzleBoard({ size, grid, wrongCell, onCellPress }: PuzzleBoardP
                       backgroundColor: stone === 'black' ? '#1a1a1a' : '#f5f5f5',
                       borderColor: stone === 'white' ? '#999' : 'transparent',
                     },
+                    // 방금 놓인 수(내 수든 상대 강제수든) 표시 — 상대가 자동으로
+                    // 둔 수를 유저가 "내가 안 눌렀는데 돌이 생겼다"고 오해하지 않게.
+                    isLastMove && styles.lastMoveRing,
                   ]}
                 />
               )}
@@ -106,5 +111,9 @@ const styles = StyleSheet.create({
   },
   stone: {
     borderWidth: 1,
+  },
+  lastMoveRing: {
+    borderWidth: 3,
+    borderColor: '#2d7cf0',
   },
 });
