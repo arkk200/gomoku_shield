@@ -33,7 +33,7 @@
 - 다른 경로(GomokuZero 등 RenjuNet 데이터를 MIT로 재포장한 GitHub 레포, Renlib의
   `.lib` 파일들)도 검토했으나 라이선스 불명확 또는 파싱 불가(독자 바이너리 포맷,
   공개 파서 없음)로 제외. RenjuNet 공식 XML 다운로드를 직접 쓰는 쪼으로 확정.
-- `tools/puzzle-gen/gomoku.py` — 15x15 프리스타일 보드(금수 없음, 5+ 승리).
+- `tools/puzzle-gen/gomoku.py` — 15x15 프리스타일 보드.
 - `tools/puzzle-gen/vcf.py` — VCF 강제승리 솔버. 매 수마다 "이기는 수가 정확히 하나"인지 검증해서 cook(복수 정답) 있는 포지션은 버림 → Lichess 퍼즐과 동일한 "유일 정답" 원칙.
 - `tools/puzzle-gen/renjunet.py` — RenjuNet XML 다운로드/캐싱, 좌표 파싱(`h8` 등 → `(r,c)`), 대국 재생.
 - `tools/puzzle-gen/generate.py` — 포지션 생성(`--source renjunet` 기본값 / `--source random` 비교용) → 유일 강제승리 체크 → 난이도(공격 측 수 개수)별 버킷에 모아 JSON 출력. `--min-difficulty`로 특정 난이도 미만을 아예 배제하고, `--bucket-target d:개수`로 난이도별 목표 개수를 `--target` 기본값 대신 따로 지정 가능.
