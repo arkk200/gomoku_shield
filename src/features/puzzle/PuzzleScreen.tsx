@@ -118,6 +118,14 @@ export function PuzzleScreen({ onDone }: PuzzleScreenProps) {
     onDone(); // 다음에 앱 아이콘으로 직접 열면 홈(설정) 화면부터 보이게 상태 리셋
   }
 
+  // 같은 퍼즐(puzzle 객체는 그대로)을 처음부터 다시 풀 수 있게 진행 상태만 리셋.
+  // 새 퍼즐을 뽑는 게 아니라 "다시 풀기"라서 puzzle은 안 건드림.
+  function handleRetry() {
+    setMovesPlayed(0);
+    setWrongCell(null);
+    setMistake(null);
+  }
+
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <Text style={styles.title}>오목 퍼즐 #{puzzle.id}</Text>
@@ -136,9 +144,14 @@ export function PuzzleScreen({ onDone }: PuzzleScreenProps) {
       {solved && (
         <View style={styles.solvedPanel}>
           <Text style={styles.solvedText}>풀었다! 🎉</Text>
-          <Pressable style={styles.confirmButton} onPress={handleConfirmDone}>
-            <Text style={styles.confirmButtonText}>돌아가기</Text>
-          </Pressable>
+          <View style={styles.buttonRow}>
+            <Pressable style={styles.retryButton} onPress={handleRetry}>
+              <Text style={styles.retryButtonText}>다시 풀기</Text>
+            </Pressable>
+            <Pressable style={styles.confirmButton} onPress={handleConfirmDone}>
+              <Text style={styles.confirmButtonText}>돌아가기</Text>
+            </Pressable>
+          </View>
         </View>
       )}
     </ScrollView>
@@ -191,6 +204,23 @@ const styles = StyleSheet.create({
   solvedText: {
     fontSize: 18,
     fontWeight: '700',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  retryButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#1a1a1a',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#1a1a1a',
+    fontSize: 16,
+    fontWeight: '600',
   },
   confirmButton: {
     backgroundColor: '#1a1a1a',
