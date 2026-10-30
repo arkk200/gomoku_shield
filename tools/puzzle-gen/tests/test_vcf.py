@@ -111,6 +111,47 @@ class TestSolveUniqueVcfBasics(unittest.TestCase):
         self.assertEqual(attacker_move_count(moves, WHITE), 3)
 
 
+class TestRenjuForbiddenIntegration(unittest.TestCase):
+    """vcf.py가 renju_forbidden.py를 실제로 쓰는지 확인하는 회귀 테스트.
+    유저가 퍼즐 #86에서 "반박수로 흑이 6목(장목)을 만든다"고 제보해서 추가함."""
+
+    def test_double_threat_block_prefers_the_legal_black_cell(self):
+        """input: 백이 한 수로 두 '사'(가로/세로 각각 막힌 사 하나씩)를 동시에
+        만드는 더블 포 — 완성 자리 (3,4)/(4,3) 중 (3,4)는 그 자리에 흑을 두면
+        대각선으로 장목이 되는 자리(정렬하면 (3,4)가 (4,3)보다 먼저라서, 좌표
+        순서로만 고르면 이 금수 자리를 '막는 수'로 잘못 골랐을 것). output: 수비
+        (흑)의 '막는 수'로는 합법한 (4,3)을 고르고, 공격(백)의 마무리 수로
+        (3,4)를 씀(마무리는 백 자신의 수라 흑 금수와 무관해서 상관없음)."""
+        board = Board()
+        place_all(board, [(3, 0, WHITE), (3, 1, WHITE), (3, 2, WHITE)])
+        place_all(board, [(0, 3, WHITE), (1, 3, WHITE), (2, 3, WHITE)])
+        # (3,4)에 흑을 두면 (1,1) 대각선으로 (4,5)(5,6)(6,7)(7,8)(8,9)와 이어져서
+        # 6개 연속(장목) -> 흑 입장에서 금수인 자리.
+        place_all(board, [(4, 5, BLACK), (5, 6, BLACK), (6, 7, BLACK), (7, 8, BLACK), (8, 9, BLACK)])
+
+        moves = solve_unique_vcf(board, WHITE, max_attacker_moves=2)
+        self.assertEqual(
+            moves,
+            [
+                {"player": WHITE, "pos": (3, 3)},
+                {"player": BLACK, "pos": (4, 3)},
+                {"player": WHITE, "pos": (3, 4)},
+            ],
+        )
+
+    def test_single_block_skipped_when_the_only_block_is_forbidden_for_black(self):
+        """input: 백이 사(완성 자리 하나뿐, (10,4))를 만드는데, 그 자리가 흑에게는
+        (세로로 이미 흑 5개가 이어져 있어서) 장목이 되는 금수 자리라 흑이 합법하게
+        못 막음. output: 공격 측이 사실상 이기는 상황이지만 "수비 한 수 + 마무리
+        한 수"로 표현 가능한 수순이 없어서(보드에 아직 5개가 안 보이는 상태라
+        '풀었다'로 잘못 표시될 수 있음) 이 경로는 퍼즐로 안 쓰고 버림 -> None."""
+        board = Board()
+        place_all(board, [(10, 0, WHITE), (10, 1, WHITE), (10, 2, WHITE)])
+        place_all(board, [(5, 4, BLACK), (6, 4, BLACK), (7, 4, BLACK), (8, 4, BLACK), (9, 4, BLACK)])
+
+        self.assertIsNone(solve_unique_vcf(board, WHITE, max_attacker_moves=2))
+
+
 class TestAttackerMoveCount(unittest.TestCase):
     def test_counts_only_the_given_player_moves(self):
         """input: [흑, 백, 흑] 수순에서 player=BLACK -> output: 2 (백 수는 안 셈)."""
