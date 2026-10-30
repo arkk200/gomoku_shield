@@ -90,7 +90,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    // 'center'로 두면 풀었을 때 solvedPanel이 추가되면서 전체 블록 높이가
+    // 늘어나 보드가 위로 밀려 올라가 보임(세로 중앙 정렬이 다시 계산되는
+    // 것뿐이라 버그는 아니었지만 눈에 거슬림) — 위에서부터 고정 배치해서
+    // solvedPanel이 보드 밑에 추가돼도 보드 자체 위치는 안 움직이게 함.
+    justifyContent: 'flex-start',
+    paddingTop: 48,
     gap: 12,
   },
   title: {

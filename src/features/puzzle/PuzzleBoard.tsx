@@ -13,6 +13,10 @@ interface PuzzleBoardProps {
 
 const BOARD_PADDING = 16;
 const LINE_THICKNESS = 1;
+// 돌 지름 = 교차점 간격의 이 비율. 유저 요청으로 0.8 -> 0.92로 키워서
+// 돌 사이 간격이 더 촘촘해 보이게 함(1.0에 가까워질수록 인접 돌끼리 거의
+// 맞닿아서 과밀해 보이니 약간 여유를 둠).
+const STONE_SCALE = 0.92;
 
 export function PuzzleBoard({ size, grid, wrongCell, lastMove, onCellPress }: PuzzleBoardProps) {
   const { width } = useWindowDimensions();
@@ -70,9 +74,9 @@ export function PuzzleBoard({ size, grid, wrongCell, lastMove, onCellPress }: Pu
                   style={[
                     styles.stone,
                     {
-                      width: spacing * 0.8,
-                      height: spacing * 0.8,
-                      borderRadius: (spacing * 0.8) / 2,
+                      width: spacing * STONE_SCALE,
+                      height: spacing * STONE_SCALE,
+                      borderRadius: (spacing * STONE_SCALE) / 2,
                       backgroundColor: stone === 'black' ? '#1a1a1a' : '#f5f5f5',
                       borderColor: stone === 'white' ? '#999' : 'transparent',
                     },
