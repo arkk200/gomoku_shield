@@ -24,6 +24,13 @@ interface PuzzleBoardProps {
 
 const BOARD_PADDING = 16;
 const LINE_THICKNESS = 1;
+// 보드를 화면 너비에만 맞추면(세로로 긴 정사각형) 화면이 좁고 긴 기기에서
+// 높이가 화면을 넘어가서 밑에 있는 "풀었다!"/"돌아가기" 버튼이 화면 밖으로
+// 밀려나는 문제가 있었음 — 제목/부제/캡션/solvedPanel이 차지하는 대략적인
+// 세로 공간을 미리 빼서 보드가 그 안에 들어오게 함(PuzzleScreen.tsx의
+// 레이아웃과 느슨하게 맞춰둔 값). 그래도 기기마다 오차는 있을 수 있어서
+// PuzzleScreen 쪽에 ScrollView도 같이 둬서 안전장치로 삼음.
+const RESERVED_VERTICAL_SPACE = 320;
 // 돌 지름 = 교차점 간격의 이 비율. 유저 요청으로 0.8 -> 0.92로 키워서
 // 돌 사이 간격이 더 촘촘해 보이게 함(1.0에 가까워질수록 인접 돌끼리 거의
 // 맞닿아서 과밀해 보이니 약간 여유를 둠).
@@ -37,8 +44,8 @@ export function PuzzleBoard({
   mistakeStones,
   onCellPress,
 }: PuzzleBoardProps) {
-  const { width } = useWindowDimensions();
-  const boardSize = width - BOARD_PADDING * 2;
+  const { width, height } = useWindowDimensions();
+  const boardSize = Math.min(width - BOARD_PADDING * 2, height - RESERVED_VERTICAL_SPACE);
   // 오목판은 칸 안이 아니라 가로/세로선이 겹치는 교차점에 돌을 놓음 — 각 교차점을
   // (칸 하나 크기의) 격자 중심으로 두고, 선은 교차점끼리를 잇는 식으로 그림.
   const spacing = boardSize / size;

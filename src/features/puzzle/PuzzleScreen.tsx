@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import ShortsDetector from '../../../modules/shorts-detector/src/ShortsDetectorModule';
 import { PuzzleBoard, type Grid, type MistakeStone } from './PuzzleBoard';
 import { pickRandomPuzzle } from './puzzleBank';
@@ -119,7 +119,7 @@ export function PuzzleScreen({ onDone }: PuzzleScreenProps) {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <Text style={styles.title}>오목 퍼즐 #{puzzle.id}</Text>
       <Text style={styles.subtitle}>{puzzle.toMove === 'black' ? '흑' : '백'}</Text>
       <Text style={styles.mistakeCaption}>
@@ -141,20 +141,29 @@ export function PuzzleScreen({ onDone }: PuzzleScreenProps) {
           </Pressable>
         </View>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  scroll: {
     flex: 1,
+  },
+  container: {
     alignItems: 'center',
     // 'center'로 두면 풀었을 때 solvedPanel이 추가되면서 전체 블록 높이가
     // 늘어나 보드가 위로 밀려 올라가 보임(세로 중앙 정렬이 다시 계산되는
     // 것뿐이라 버그는 아니었지만 눈에 거슬림) — 위에서부터 고정 배치해서
     // solvedPanel이 보드 밑에 추가돼도 보드 자체 위치는 안 움직이게 함.
+    // ScrollView로 감싼 이유: PuzzleBoard가 화면 너비에 맞춰 커지는 정사각형
+    // 이라, 좁고 긴 화면에서는 높이 계산을 아무리 잘해도 완벽히 다 들어간다는
+    // 보장이 없음 — solvedPanel("돌아가기" 버튼)이 화면 밖으로 밀려나 안
+    // 보이던 버그가 실제로 있었음. 보드 크기 자체도 PuzzleBoard 쪽에서
+    // 세로 공간을 고려해서 줄이게 해뒀지만(RESERVED_VERTICAL_SPACE),
+    // 기기별 오차에 대한 안전장치로 스크롤을 추가함.
     justifyContent: 'flex-start',
     paddingTop: 48,
+    paddingBottom: 32,
     gap: 12,
   },
   title: {
