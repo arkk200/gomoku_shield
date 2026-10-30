@@ -1,12 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import ShortsDetector from '../../../modules/shorts-detector/src/ShortsDetectorModule';
-import { PuzzleBoard, type Grid } from './PuzzleBoard';
+import { PuzzleBoard, type Grid, type MistakeStone } from './PuzzleBoard';
 import { pickRandomPuzzle } from './puzzleBank';
+import { findRefutationCell } from './refutation';
 import type { Puzzle } from './types';
 
 const DEFENDER_MOVE_DELAY_MS = 500;
 const WRONG_FLASH_MS = 400;
+const MISTAKE_SHOWN_MS = 550; // 오답 돌만 보여주는 시간
+const MISTAKE_REFUTED_MS = 900; // 반박수까지 보여준 뒤 되돌리기까지 시간
+
+// 오답이 위협(사삼)을 만들었을 때 — 상대 반박수까지 보여주는 상태.
+// phase 'shown' -> (반박수 있으면) 'refuted' -> null(원상복구)로 흘러감.
+interface Mistake {
+  wrong: { r: number; c: number };
+  refutation: { r: number; c: number } | null;
+  phase: 'shown' | 'refuted';
+}
 
 function buildGrid(size: number, puzzle: Puzzle, movesPlayed: number): Grid {
   const grid: Grid = Array.from({ length: size }, () => Array(size).fill(null));
@@ -28,6 +39,7 @@ export function PuzzleScreen({ onDone }: PuzzleScreenProps) {
   const [puzzle] = useState<Puzzle>(() => pickRandomPuzzle());
   const [movesPlayed, setMovesPlayed] = useState(0);
   const [wrongCell, setWrongCell] = useState<{ r: number; c: number } | null>(null);
+  const [mistake, setMistake] = useState<Mistake | null>(null);
 
   const solved = movesPlayed >= puzzle.solution.length;
   const grid = useMemo(() => buildGrid(puzzle.size, puzzle, movesPlayed), [puzzle, movesPlayed]);
@@ -44,13 +56,56 @@ export function PuzzleScreen({ onDone }: PuzzleScreenProps) {
     return () => clearTimeout(timer);
   }, [movesPlayed, puzzle, solved]);
 
+  // mistake 상태 진행: 오답 돌만 잠깐 보여줬다가(shown), 반박수가 있으면
+  // 그걸 추가로 보여주고(refuted), 끝나면 원상복구(null)함.
+  useEffect(() => {
+    if (!mistake) return;
+    if (mistake.phase === 'shown') {
+      if (!mistake.refutation) {
+        const timer = setTimeout(() => setMistake(null), MISTAKE_SHOWN_MS);
+        return () => clearTimeout(timer);
+      }
+      const timer = setTimeout(
+        () => setMistake((m) => (m ? { ...m, phase: 'refuted' } : m)),
+        MISTAKE_SHOWN_MS,
+      );
+      return () => clearTimeout(timer);
+    }
+    const timer = setTimeout(() => setMistake(null), MISTAKE_REFUTED_MS);
+    return () => clearTimeout(timer);
+  }, [mistake]);
+
+  const mistakeStones: MistakeStone[] = useMemo(() => {
+    if (!mistake) return [];
+    const stones: MistakeStone[] = [
+      { r: mistake.wrong.r, c: mistake.wrong.c, player: puzzle.toMove, ring: 'wrong' },
+    ];
+    if (mistake.phase === 'refuted' && mistake.refutation) {
+      stones.push({
+        r: mistake.refutation.r,
+        c: mistake.refutation.c,
+        player: puzzle.toMove === 'black' ? 'white' : 'black',
+        ring: 'refutation',
+      });
+    }
+    return stones;
+  }, [mistake, puzzle.toMove]);
+
   function handleCellPress(r: number, c: number) {
-    if (solved) return;
+    if (solved || mistake) return;
     const next = puzzle.solution[movesPlayed];
     if (next.player !== puzzle.toMove) return; // 지금은 상대(강제) 차례라 입력 무시
 
     if (next.r === r && next.c === c) {
       setMovesPlayed((n) => n + 1);
+      return;
+    }
+
+    // 오답이 사삼(위협)을 만들면 막는 자리(반박수)까지 보여주고, 아무 위협도
+    // 안 만드는 수면 기존처럼 그냥 빨간 플래시만.
+    const refutation = findRefutationCell(grid, puzzle.size, r, c, puzzle.toMove);
+    if (refutation) {
+      setMistake({ wrong: { r, c }, refutation, phase: 'shown' });
     } else {
       setWrongCell({ r, c });
       setTimeout(() => setWrongCell(null), WRONG_FLASH_MS);
@@ -67,11 +122,15 @@ export function PuzzleScreen({ onDone }: PuzzleScreenProps) {
     <View style={styles.container}>
       <Text style={styles.title}>오목 퍼즐 #{puzzle.id}</Text>
       <Text style={styles.subtitle}>{puzzle.toMove === 'black' ? '흑' : '백'}</Text>
+      <Text style={styles.mistakeCaption}>
+        {mistake?.phase === 'refuted' ? '여기서 막혀요' : ' '}
+      </Text>
       <PuzzleBoard
         size={puzzle.size}
         grid={grid}
         wrongCell={wrongCell}
         lastMove={lastMove}
+        mistakeStones={mistakeStones}
         onCellPress={handleCellPress}
       />
       {solved && (
@@ -105,6 +164,15 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#555',
+  },
+  mistakeCaption: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#b35900',
+    // 텍스트 유무와 상관없이 높이를 고정해서(빈 스페이스일 때도 똑같이 차지)
+    // 캡션이 떴다 사라질 때마다 보드가 위아래로 밀리지 않게 함 — 풀었을 때
+    // 보드가 밀리던 버그 고친 것과 같은 이유.
+    minHeight: 18,
   },
   solvedPanel: {
     marginTop: 16,

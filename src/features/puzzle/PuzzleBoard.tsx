@@ -3,11 +3,22 @@ import type { StoneColor } from './types';
 
 export type Grid = (StoneColor | null)[][];
 
+// 오답인데 위협(사삼)을 만든 경우 보여주는 임시 오버레이 돌 — 커밋되는
+// grid와 별개로, 유저가 둔 자리(ring:'wrong')와 그걸 막는 상대 반박수
+// (ring:'refutation')를 잠깐 보여줬다가 되돌림.
+export interface MistakeStone {
+  r: number;
+  c: number;
+  player: StoneColor;
+  ring: 'wrong' | 'refutation';
+}
+
 interface PuzzleBoardProps {
   size: number;
   grid: Grid;
   wrongCell: { r: number; c: number } | null;
   lastMove: { r: number; c: number } | null;
+  mistakeStones: MistakeStone[];
   onCellPress: (r: number, c: number) => void;
 }
 
@@ -18,7 +29,14 @@ const LINE_THICKNESS = 1;
 // 맞닿아서 과밀해 보이니 약간 여유를 둠).
 const STONE_SCALE = 0.92;
 
-export function PuzzleBoard({ size, grid, wrongCell, lastMove, onCellPress }: PuzzleBoardProps) {
+export function PuzzleBoard({
+  size,
+  grid,
+  wrongCell,
+  lastMove,
+  mistakeStones,
+  onCellPress,
+}: PuzzleBoardProps) {
   const { width } = useWindowDimensions();
   const boardSize = width - BOARD_PADDING * 2;
   // 오목판은 칸 안이 아니라 가로/세로선이 겹치는 교차점에 돌을 놓음 — 각 교차점을
@@ -90,6 +108,35 @@ export function PuzzleBoard({ size, grid, wrongCell, lastMove, onCellPress }: Pu
           );
         }),
       )}
+
+      {mistakeStones.map((m) => (
+        <View
+          key={`mistake-${m.r}-${m.c}`}
+          style={[
+            styles.intersection,
+            {
+              left: center(m.c) - spacing / 2,
+              top: center(m.r) - spacing / 2,
+              width: spacing,
+              height: spacing,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.stone,
+              {
+                width: spacing * STONE_SCALE,
+                height: spacing * STONE_SCALE,
+                borderRadius: (spacing * STONE_SCALE) / 2,
+                backgroundColor: m.player === 'black' ? '#1a1a1a' : '#f5f5f5',
+                borderColor: m.player === 'white' ? '#999' : 'transparent',
+              },
+              m.ring === 'wrong' ? styles.wrongRing : styles.refutationRing,
+            ]}
+          />
+        </View>
+      ))}
     </View>
   );
 }
@@ -119,5 +166,13 @@ const styles = StyleSheet.create({
   lastMoveRing: {
     borderWidth: 3,
     borderColor: '#2d7cf0',
+  },
+  wrongRing: {
+    borderWidth: 3,
+    borderColor: '#d9342b',
+  },
+  refutationRing: {
+    borderWidth: 3,
+    borderColor: '#e08a00',
   },
 });
