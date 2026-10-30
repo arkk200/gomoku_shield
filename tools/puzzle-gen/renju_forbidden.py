@@ -81,9 +81,11 @@ def _on_span(r, c, sr, sc, er, ec, dr, dc):
         cc += dc
 
 
-def _wins_with_exact_five(board, r, c):
+def wins_with_exact_five(board, r, c):
     """(r, c)에 흑이 이미 놓인 상태에서, 어느 방향으로든 '정확히 5개'(6개 이상은
-    장목이라 승리 아님)를 완성하는지. 이기는 수는 금수 판정보다 항상 우선임."""
+    장목이라 승리 아님)를 완성하는지. 이기는 수는 금수 판정보다 항상 우선임.
+    vcf.py가 흑의 승리 판정에 직접 씀(백은 gomoku.py의 is_five를 그대로 씀 —
+    백은 장목 제한이 없어서 5개 이상이면 다 승리)."""
     return any(_run_span(board, r, c, BLACK, dr, dc)[4] == 5 for dr, dc in DIRECTIONS)
 
 
@@ -92,11 +94,16 @@ def _is_overline(board, r, c):
     return any(_run_span(board, r, c, BLACK, dr, dc)[4] >= 6 for dr, dc in DIRECTIONS)
 
 
-def _is_double_four(board, r, c):
+def _is_double_four(board, r, c, comp=None):
     """사사(이 한 수로 '사'가 동시에 2개 이상 생기는지) 여부.
     gomoku.py의 completion_cells가 정확히 이 패턴(4개 연속+빈칸1)을 모든 방향에서
-    찾아주는 함수라 그대로 재사용함(VCF 솔버의 '더블 포' 분기와 같은 개념)."""
-    return len(board.completion_cells(r, c, BLACK)) >= 2
+    찾아주는 함수라 그대로 재사용함(VCF 솔버의 '더블 포' 분기와 같은 개념).
+    `comp`를 미리 계산해서 넘기면 다시 안 돌림 — vcf.py의 _solve가 같은 (r,c)에
+    대해 completion_cells를 이미 호출해둔 경우가 많아서(성능 핫패스, 프로파일링으로
+    확인) 중복 호출을 피하려고 둠."""
+    if comp is None:
+        comp = board.completion_cells(r, c, BLACK)
+    return len(comp) >= 2
 
 
 def _is_live_three_direction(board, r, c, dr, dc):
@@ -105,7 +112,18 @@ def _is_live_three_direction(board, r, c, dr, dc):
     더 뒀을 때 (r,c)를 포함하는 열린 사가 실제로 만들어지는가"를 직접 시뮬레이션
     해서 확인함 — 이어진 삼(BBB)이든 끊긴 삼(BB_B, B_BB)이든 따로 패턴을 안 챙겨도
     같은 로직으로 맞게 처리됨."""
-    for k in list(range(-4, 0)) + list(range(1, 5)):
+    candidates = list(range(-4, 0)) + list(range(1, 5))
+
+    # 빠른 선필터(성능용): 이 방향에 (r,c) 말고 흑 돌이 하나도 없으면 삼 자체가
+    # 안 되니, 비싼 시뮬레이션(돌 놓기/되돌리기) 전에 그냥 바로 포기함 — 후보
+    # 칸 대부분은 주변에 흑이 아예 없는 경우라 이 선필터가 실제로 많이 걸러냄.
+    if not any(
+        board.in_bounds(r + k * dr, c + k * dc) and board.grid[r + k * dr][c + k * dc] == BLACK
+        for k in candidates
+    ):
+        return False
+
+    for k in candidates:
         pr, pc = r + k * dr, c + k * dc
         if not board.in_bounds(pr, pc) or board.grid[pr][pc] != EMPTY:
             continue
@@ -120,21 +138,29 @@ def _is_live_three_direction(board, r, c, dr, dc):
 
 
 def _is_double_three(board, r, c):
-    """삼삼(이 한 수로 '열린 삼'이 동시에 2개 이상 생기는지) 여부."""
-    live_count = sum(1 for dr, dc in DIRECTIONS if _is_live_three_direction(board, r, c, dr, dc))
-    return live_count >= 2
+    """삼삼(이 한 수로 '열린 삼'이 동시에 2개 이상 생기는지) 여부. 2개를 찾는
+    순간 바로 반환 — 나머지 방향까지 다 돌 필요 없음(성능용 조기 종료)."""
+    live_count = 0
+    for dr, dc in DIRECTIONS:
+        if _is_live_three_direction(board, r, c, dr, dc):
+            live_count += 1
+            if live_count >= 2:
+                return True
+    return False
 
 
-def is_forbidden_for_black(board, r, c):
+def is_forbidden_for_black(board, r, c, comp=None):
     """board.place(r, c, BLACK)가 이미 호출된 상태에서 호출해야 함(gomoku.py의
     is_five/completion_cells와 같은 호출 관례). 장목/사사/삼삼 중 하나라도
     해당하면 True(= 렌주 룰에서 흑이 둘 수 없는 자리). 그 수가 어느 방향으로든
-    정확히 5개를 완성하는 승리 수면 항상 우선이라 금수 아님(False)."""
-    if _wins_with_exact_five(board, r, c):
+    정확히 5개를 완성하는 승리 수면 항상 우선이라 금수 아님(False). `comp`는
+    _is_double_four로 그대로 전달됨(호출 쪽에서 completion_cells를 이미
+    구해뒀으면 중복 계산 피하려고 넘길 수 있음 — 선택 사항, 안 넘기면 알아서 구함)."""
+    if wins_with_exact_five(board, r, c):
         return False
     if _is_overline(board, r, c):
         return True
-    if _is_double_four(board, r, c):
+    if _is_double_four(board, r, c, comp):
         return True
     if _is_double_three(board, r, c):
         return True

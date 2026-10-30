@@ -46,13 +46,21 @@ class Board:
     def completion_cells(self, r, c, player):
         """(r, c)에 `player`가 돌을 놓은 뒤, 거기 두면 5개가 완성되는 빈 자리들을 반환
         (= 상대가 막아야 하는 자리). (r, c)를 지나는 모든 5칸짜리 구간 중
-        플레이어 돌 4개 + 빈칸 1개인 패턴을 찾아서 그 빈칸을 모음."""
+        플레이어 돌 4개 + 빈칸 1개인 패턴을 찾아서 그 빈칸을 모음.
+
+        성능 참고(렌주 금수 체크를 VCF 솔버 깊은 재귀에서 매 후보마다 돌게 되면서
+        이 함수가 호출 빈도 1위 핫패스가 됨 — 프로파일링으로 확인): 윈도우 5칸을
+        하나씩 in_bounds로 검사하는 대신, 직선 윈도우의 양 끝 두 칸만 in_bounds면
+        (dr, dc가 -1/0/1이라 그 사이 칸들은 보드 안에 있는 게 보장됨) 안 보고
+        넘어가도 됨 — in_bounds 호출 수를 5번에서 2번으로 줄임."""
         cells = set()
         for dr, dc in DIRECTIONS:
             for offset in range(-4, 1):
-                window = [(r + (offset + i) * dr, c + (offset + i) * dc) for i in range(5)]
-                if not all(self.in_bounds(wr, wc) for wr, wc in window):
+                start_r, start_c = r + offset * dr, c + offset * dc
+                end_r, end_c = r + (offset + 4) * dr, c + (offset + 4) * dc
+                if not (self.in_bounds(start_r, start_c) and self.in_bounds(end_r, end_c)):
                     continue
+                window = [(r + (offset + i) * dr, c + (offset + i) * dc) for i in range(5)]
                 values = [self.grid[wr][wc] for wr, wc in window]
                 if values.count(player) == 4 and values.count(EMPTY) == 1:
                     idx = values.index(EMPTY)

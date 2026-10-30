@@ -28,13 +28,14 @@ def _wins(board, r, c, player):
     return renju_forbidden.wins_with_exact_five(board, r, c)
 
 
-def _legal(board, r, c, player):
+def _legal(board, r, c, player, comp=None):
     """(r, c)에 player가 이미 놓인 상태에서, 이 수 자체가 합법인지. 백은 항상
     합법(렌주 금수 없음), 흑은 장목/사사/삼삼이면 불법. 승리 수는 항상 합법
-    (renju_forbidden의 우선순위 규칙 — 이기는 수가 금수보다 늘 우선)."""
+    (renju_forbidden의 우선순위 규칙 — 이기는 수가 금수보다 늘 우선). `comp`를
+    미리 계산해서 넘기면(아래 _solve 메인 루프처럼) 중복 계산 피함."""
     if player == WHITE:
         return True
-    return not renju_forbidden.is_forbidden_for_black(board, r, c)
+    return not renju_forbidden.is_forbidden_for_black(board, r, c, comp)
 
 
 def _real_win_completion_cells(board, player, comp):
@@ -83,19 +84,26 @@ def _solve(board, player, depth_limit):
     for (r, c) in board.candidate_cells(margin=2):
         board.place(r, c, player)
 
-        if not _legal(board, r, c, player):
-            # 흑 차례인데 이 수 자체가 렌주 금수라 애초에 못 둠.
-            board.undo(r, c)
-            continue
-
         if _wins(board, r, c, player):
+            # 이기는 수는 항상 합법(렌주 금수 우선순위 규칙) -> completion_cells
+            # 계산 자체가 필요 없어서 건너뜀(성능 핫패스, 프로파일링으로 확인).
             winners.append(((r, c), [{"player": player, "pos": (r, c)}]))
             board.undo(r, c)
             if len(winners) > 1:
                 break
             continue
 
-        comp = _real_win_completion_cells(board, player, board.completion_cells(r, c, player))
+        # completion_cells는 이 아래에서 금수 판정(사사)과 위협 판정 둘 다에
+        # 쓰이는데, 예전엔 따로따로 두 번 불렀음 — 한 번만 구해서 재사용함
+        # (가장 많이 불리는 함수라 프로파일링으로 확인된 핫패스).
+        raw_comp = board.completion_cells(r, c, player)
+
+        if not _legal(board, r, c, player, raw_comp):
+            # 흑 차례인데 이 수 자체가 렌주 금수라 애초에 못 둠.
+            board.undo(r, c)
+            continue
+
+        comp = _real_win_completion_cells(board, player, raw_comp)
 
         if len(comp) >= 2:
             # 더블 포(double threat): 상대는 둘 중 하나만 막을 수 있어서, 남은 자리로 공격 측이 마무리함.
